@@ -13,6 +13,11 @@ class Personnel extends Model
         'adresse', 'nationalite', 'phone', 'mail', 'section_id', 'date_inscription'
     ];
 
+    public function users()
+    {
+        return $this->belongsTo(User::class);
+    }
+    
     public function cotisations()
     {
         return $this->hasMany(Cotisation::class); // une personne peut avoir plusieurs cotisations

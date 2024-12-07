@@ -3,19 +3,59 @@
 namespace App\Http\Controllers;
 
 use App\Models\Cotisation;
+use App\Models\Fokontany;
 use Illuminate\Http\Request;
 use App\Models\Section;
 use App\Models\Personnel;
 use App\Models\Diplome;
 use App\Models\PoleRecherche;
 use App\Models\ActiviteIndividual;
+use App\Models\Commune;
+use App\Models\District;
 use App\Models\TypeMembre;
+use App\Models\User;
+use GrahamCampbell\ResultType\Success;
 use Illuminate\Support\Facades\DB;
-
+use Illuminate\Support\Facades\Log;
 
 class HomeController extends Controller
 {
 
+    public function sondage(Request $request){
+        // Validation des données d'entrée
+        $request->validate([
+            'district' => 'required|string',
+            'commune' => 'required|string',
+            'fokontany' => 'required|string',
+            // Ajoutez d'autres règles de validation pour l'inscription
+        ]);
+
+        // Vérifier si le district existe
+        $district = District::where('name', $request->district)->first();
+        if (!$district) {
+            return redirect()->back()->withErrors(['district' => 'Le district spécifié n\'existe pas.']);
+        }
+
+        // Vérifier si la commune existe dans ce district
+        $commune = Commune::where('name', $request->commune)
+                         ->where('district_id', $district->id)
+                         ->first();
+        if (!$commune) {
+            return redirect()->back()->withErrors(['commune' => 'La commune spécifiée n\'existe pas dans ce district.']);
+        }
+
+        // Vérifier si le fokontany existe dans cette commune
+        $fokontany = Fokontany::where('name', $request->fokontany)
+                             ->where('commune_id', $commune->id)
+                             ->first();
+        if (!$fokontany) {
+            return redirect()->back()->withErrors(['fokontany' => 'Le fokontany spécifié n\'existe pas dans cette commune.']);
+        }
+
+
+        return redirect()->route('home')->with('success', 'Inscription réussie !');
+
+    }
     public function sections() {
         $sections = Section::all();
 
@@ -39,6 +79,7 @@ class HomeController extends Controller
                 'diplome' => 'required|array',
                 'autreDiplome' => 'nullable|string|max:255',
                 'poles' => 'nullable|array',
+                'poles.*.value' => 'required|string|max:255',
                 'profession' => 'required|string|max:100',
                 'domain' => 'required|string|max:100',
                 'date_inscription' => 'required|date',
@@ -46,8 +87,9 @@ class HomeController extends Controller
                 'membre_sympathisant' => 'required|boolean',
                 'section' => "required|exists:sections,id"
             ]);
+            $personnelId = null;
     
-            DB::transaction(function () use ($request) {
+            DB::transaction(function () use ($request, &$personnelId) {
                 // Étape 1 : Enregistrer la personne dans la table `personnels`
                 $personne = Personnel::create([
                     'appelation' => $request->input('appelation'),
@@ -62,6 +104,7 @@ class HomeController extends Controller
                     'mail' => $request->input('email'),
                     'section_id' => $request->input('section'),
                 ]);
+                $personnelId = $personne->id;
     
                 // Étape 2 : Déterminer les types de membres à associer
                 $typeIds = [];
@@ -85,17 +128,23 @@ class HomeController extends Controller
                     ]);
                 }
     
-                // Étape 4 : Ajouter les pôles dans `poles_recherche`
                 if ($request->input('poles')) {
+                    Log::info('Nombre de pôles reçus : ' . count($request->input('poles')));
+                
                     foreach ($request->input('poles') as $pole) {
-                        // Vérifiez si 'name' est défini et non vide
-                        if (!empty($pole['name'])) {
+                        Log::info('Traitement du pôle : ', $pole);
+                
+                        if (!empty($pole['value'])) {
                             PoleRecherche::create([
                                 'personnel_id' => $personne->id,
-                                'nom' => $pole['name'], // 'nom' est obligatoire
+                                'nom' => $pole['value'],
                             ]);
+                        } else {
+                            Log::warning('Pôle invalide : ', $pole);
                         }
                     }
+                } else {
+                    Log::info('Aucun pôle reçu.');
                 }
 
                 // Étape 5 : Ajouter l'activité individuelle
@@ -109,8 +158,10 @@ class HomeController extends Controller
             });
     
             return response()->json([
-                
+                'success' => 'success',
                 'message' => 'Données enregistrées avec succès',
+                'id'      => $personnelId
+                
             ], 201);
     
         } catch (\Illuminate\Validation\ValidationException $e) {
