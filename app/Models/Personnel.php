@@ -10,8 +10,15 @@ class Personnel extends Model
     use HasFactory;
     protected $fillable = [
         'appelation', 'nom', 'prenom', 'date_naissance', 'genre', 
-        'adresse', 'nationalite', 'phone', 'mail', 'section_id', 'date_inscription'
+        'adresse', 'nationalite', 'phone', 'mail', 'section_id', 'date_inscription', 'profile_picture'
     ];
+
+    public function getProfilePictureUrlAttribute()
+    {
+        return $this->profile_picture 
+        ? asset(str_replace('public/', 'storage/', $this->profile_picture))
+        : null;    }
+
 
     public function users()
     {

@@ -22,6 +22,10 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
+Route::middleware(['auth:sanctum'])->group(function () {
+    Route::put('/personnel/{personId}', [HomeController::class, 'update']);
+});
+
 Route::post('/check-email', function (Request $request) {
     $emailExists = User::where('email', $request->email)->exists();
     return response()->json(['exists' => $emailExists]);

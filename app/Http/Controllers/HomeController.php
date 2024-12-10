@@ -13,13 +13,47 @@ use App\Models\ActiviteIndividual;
 use App\Models\Commune;
 use App\Models\District;
 use App\Models\TypeMembre;
-use App\Models\User;
-use GrahamCampbell\ResultType\Success;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class HomeController extends Controller
 {
+    public function update(Request $request, $personId)
+    {
+        \Log::info('ID reçu pour la mise à jour :', ['id' => $personId]);
+
+        $personnel = Personnel::findOrFail($personId); // Trouver l'enregistrement
+    
+        foreach ($request->all() as $key => $value) {
+            if ($key === 'personnelData') {
+                // Valider les données
+                $validated = $request->validate([
+                    'personnelData.nom' => 'sometimes|string|max:255',
+                    'personnelData.prenom' => 'sometimes|string|max:255',
+                    'personnelData.appelation' => 'sometimes|string|max:255',
+                    'personnelData.phone' => 'sometimes|string|max:15',
+                    'personnelData.mail' => 'sometimes|email|max:255',
+                    'personnelData.date_naissance' => 'sometimes|date',
+                    'personnelData.date_inscription' => 'sometimes|date',
+                    'personnelData.genre' => 'sometimes|string|max:50',
+                    'personnelData.adresse' => 'sometimes|string|max:255',
+                    'personnelData.nationalite' => 'sometimes|string|max:100',
+                    'personnelData.section_id' => 'sometimes|exists:sections,id',
+                ]);
+    
+                // Mettre à jour l'enregistrement
+                $personnel->update($validated['personnelData']);
+            }
+        }
+    
+        // Retourner les données mises à jour
+        return response()->json([
+            'message' => 'Données mises à jour avec succès.',
+            'personnel' => $personnel->fresh()->load('section', 'diplomes'), // Utilise `fresh` pour récupérer les données actualisées
+        ]);
+    }
+
+
 
     public function sondage(Request $request){
         // Validation des données d'entrée
@@ -85,7 +119,9 @@ class HomeController extends Controller
                 'date_inscription' => 'required|date',
                 'membre_Actif' => 'required|boolean',
                 'membre_sympathisant' => 'required|boolean',
-                'section' => "required|exists:sections,id"
+                'section' => "required|exists:sections,id",
+                'profile_picture' => 'sometimes|image|mimes:jpg,jpeg,png,gif|max:2048', // Validation de l'image
+
             ]);
             $personnelId = null;
     
@@ -104,6 +140,14 @@ class HomeController extends Controller
                     'mail' => $request->input('email'),
                     'section_id' => $request->input('section'),
                 ]);
+                // Si une photo est envoyée, on la stocke
+                if ($request->hasFile('profile_picture')) {
+                    $path = $request->file('profile_picture')->store('public/profile_pictures');
+                    $personne->profile_picture = $path;
+                    $personne->save();
+                }
+                
+
                 $personnelId = $personne->id;
     
                 // Étape 2 : Déterminer les types de membres à associer
