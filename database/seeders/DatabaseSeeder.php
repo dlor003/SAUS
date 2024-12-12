@@ -32,8 +32,11 @@ class DatabaseSeeder extends Seeder
         //     'email' => 'test@example.com',
         // ]);
         // Insérer 8 provinces
-        $this->call([
-            SectionSeeder::class,
-        ]);
+        // $this->call([
+        //     SectionSeeder::class,
+        // ]);
+        // $this->call(PolesSeeders::class);
+        $this->call(ActivitySeeder::class);
+
     }
 }

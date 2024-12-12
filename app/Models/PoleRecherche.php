@@ -9,12 +9,12 @@ class PoleRecherche extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['nom', 'personnel_id'];
+    protected $fillable = ['nom'];
     protected $table = "poles_recherches";
 
-    // Relation avec le personnel
-    public function personnel()
+    // Relation avec les personnels
+    public function personnels()
     {
-        return $this->belongsTo(Personnel::class);
+        return $this->belongsToMany(Personnel::class, 'personnel_poles', 'poles_id', 'personnel_id');
     }
 }

@@ -17,7 +17,13 @@ class Personnel extends Model
     {
         return $this->profile_picture 
         ? asset(str_replace('public/', 'storage/', $this->profile_picture))
-        : null;    }
+        : null;   
+    }
+
+    public function autresDiplomes()
+    {
+        return $this->hasMany(AutresDiplomes::class);
+    }
 
 
     public function users()
@@ -56,18 +62,18 @@ class Personnel extends Model
     // Relation avec les diplômes
     public function diplomes()
     {
-        return $this->hasMany(Diplome::class);
+        return $this->belongsToMany(Diplome::class, 'personnel_diplome');
     }
 
-    // Relation avec les pôles de recherche
+
+  // Relation avec les pôles de recherche
     public function polesRecherche()
     {
-        return $this->hasMany(PoleRecherche::class);
+        return $this->belongsToMany(PoleRecherche::class, 'personnel_poles', 'personnel_id', 'poles_id');
     }
-
     // Relation avec les activités individuelles
     public function activiteIndividual()
     {
-        return $this->hasMany(ActiviteIndividual::class);
+        return $this->belongsToMany(ActiviteIndividual::class, 'personnel_activite');
     }
 }

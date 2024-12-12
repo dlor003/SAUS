@@ -42,4 +42,4 @@ Route::post('/verify-commune', [VerificationController::class, 'verifyCommune'])
 Route::post('/verify-fokontany', [VerificationController::class, 'verifyFokontany']);
 
 Route::post('/INSCRIPTION-SAUS', [HomeController::class, 'store']);
-Route::get('/sections', [HomeController::class, 'sections']);
+Route::get('/allData', [HomeController::class, 'allData']);

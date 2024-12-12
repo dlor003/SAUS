@@ -9,11 +9,11 @@ class ActiviteIndividual extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['nom', 'personnel_id', 'domain'];
+    protected $fillable = ['nom'];
 
     // Relation avec le personnel
-    public function personnel()
+    public function personnels()
     {
-        return $this->belongsTo(Personnel::class);
+        return $this->belongsToMany(Personnel::class, 'personnel_activite');
     }
 }

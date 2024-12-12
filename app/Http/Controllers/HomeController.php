@@ -19,15 +19,15 @@ use Illuminate\Support\Facades\Log;
 class HomeController extends Controller
 {
     public function update(Request $request, $personId)
-    {
-        \Log::info('ID reçu pour la mise à jour :', ['id' => $personId]);
+        {
+            \Log::info('ID reçu pour la mise à jour :', ['id' => $personId]);
 
-        $personnel = Personnel::findOrFail($personId); // Trouver l'enregistrement
-    
-        foreach ($request->all() as $key => $value) {
-            if ($key === 'personnelData') {
-                // Valider les données
-                $validated = $request->validate([
+            // Trouver l'enregistrement personnel
+            $personnel = Personnel::findOrFail($personId);
+
+            // Valider les données de personnelData
+            if ($request->has('personnelData')) {
+                $validatedPersonnelData = $request->validate([
                     'personnelData.nom' => 'sometimes|string|max:255',
                     'personnelData.prenom' => 'sometimes|string|max:255',
                     'personnelData.appelation' => 'sometimes|string|max:255',
@@ -40,20 +40,37 @@ class HomeController extends Controller
                     'personnelData.nationalite' => 'sometimes|string|max:100',
                     'personnelData.section_id' => 'sometimes|exists:sections,id',
                 ]);
-    
-                // Mettre à jour l'enregistrement
-                $personnel->update($validated['personnelData']);
+
+                // Mettre à jour l'enregistrement personnel
+                $personnel->update($validatedPersonnelData['personnelData']);
             }
+
+            // Traitement des diplômes
+            if ($request->has('diplomes')) {
+                // Récupérer les diplômes depuis la requête
+                $diplomes = $request->input('diplomes');
+
+                // Valider les diplômes
+                $validatedDiplomes = $request->validate([
+                    'diplomes.*.nom' => 'required|string|max:255',
+                ]);
+
+                // Insérer chaque diplôme dans la base de données et l'associer au personnel
+                foreach ($diplomes as $diplome) {
+                    // Créer un nouveau diplôme et associer à ce personnel
+                    Diplome::create([
+                        'nom' => $diplome['nom'],
+                        'personnel_id' => $personnel->id, // Associer le diplôme au personnel
+                    ]);
+                }
+            }
+
+            // Répondre avec une réponse appropriée// Retourner les données mises à jour
+                return response()->json([
+                    'message' => 'Données mises à jour avec succès.',
+                    'personnel' => $personnel->fresh()->load('section', 'diplomes'), // Utilise `fresh` pour récupérer les données actualisées
+                ]);
         }
-    
-        // Retourner les données mises à jour
-        return response()->json([
-            'message' => 'Données mises à jour avec succès.',
-            'personnel' => $personnel->fresh()->load('section', 'diplomes'), // Utilise `fresh` pour récupérer les données actualisées
-        ]);
-    }
-
-
 
     public function sondage(Request $request){
         // Validation des données d'entrée
@@ -90,14 +107,23 @@ class HomeController extends Controller
         return redirect()->route('home')->with('success', 'Inscription réussie !');
 
     }
-    public function sections() {
+    public function allData() {
         $sections = Section::all();
+        $diplomes = Diplome::all();
+        $activity = ActiviteIndividual::all();
+        $poles    = PoleRecherche::all();
 
-        return ['section' => $sections];
+        return [
+            'sections' => $sections,
+            'diplomes' => $diplomes,
+            'activity' => $activity,
+            'poles'    => $poles
+        ]; 
     }
     
     public function store(Request $request)
     {
+        Log::info('Donnees recu :', ['data' => $request]);
         try {
             // Validation des données
             $request->validate([
@@ -110,11 +136,11 @@ class HomeController extends Controller
                 'nationalite' => 'required|string|max:100',
                 'telephone' => 'required|string|max:15',
                 'email' => 'required|email|max:255',
-                'diplome' => 'required|array',
-                'autreDiplome' => 'nullable|string|max:255',
+                'diplomes' => 'required|array',
+                'autreDiplomes' => 'nullable|string|max:255',
                 'poles' => 'nullable|array',
                 'poles.*.value' => 'required|string|max:255',
-                'profession' => 'required|string|max:100',
+                'activity' => 'required|string|max:100',
                 'domain' => 'required|string|max:100',
                 'date_inscription' => 'required|date',
                 'membre_Actif' => 'required|boolean',
@@ -164,39 +190,22 @@ class HomeController extends Controller
                 // Associer les types de membres dans la table pivot
                 $personne->typesMembres()->sync($typeIds);
     
-                // Étape 3 : Ajouter les diplômes dans la table `diplomes`
-                foreach ($request->input('diplome') as $diplome) {
-                    Diplome::create([
-                        'personnel_id' => $personne->id,
-                        'nom' => $diplome,
-                    ]);
+                // Associer les diplômes dans la table pivot `personnel_diplome`
+                if ($request->input('diplomes')) {
+                    $personne->diplomes()->sync($request->input('diplomes'));
                 }
-    
+                
+                // Associer les diplômes dans la table pivot `personnel_diplome`
                 if ($request->input('poles')) {
-                    Log::info('Nombre de pôles reçus : ' . count($request->input('poles')));
-                
-                    foreach ($request->input('poles') as $pole) {
-                        Log::info('Traitement du pôle : ', $pole);
-                
-                        if (!empty($pole['value'])) {
-                            PoleRecherche::create([
-                                'personnel_id' => $personne->id,
-                                'nom' => $pole['value'],
-                            ]);
-                        } else {
-                            Log::warning('Pôle invalide : ', $pole);
-                        }
-                    }
-                } else {
-                    Log::info('Aucun pôle reçu.');
+                    $personne->polesRecherche()->sync($request->input('poles'));
                 }
 
-                // Étape 5 : Ajouter l'activité individuelle
-                ActiviteIndividual::create([
-                    'personnel_id' => $personne->id,
-                    'nom' => $request->input('profession'), // Le nom de l'activité est la profession
-                    'domain' => $request->input('domain'), // Domaine de l'activité
-                ]);
+                // Associer les diplômes dans la table pivot `personnel_diplome`
+                if ($request->input('activity')) {
+                    $personne->activiteIndividual()->sync($request->input('activity'));
+                }
+
+                
 
 
             });
