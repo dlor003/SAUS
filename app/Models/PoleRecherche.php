@@ -13,8 +13,8 @@ class PoleRecherche extends Model
     protected $table = "poles_recherches";
 
     // Relation avec les personnels
-    public function personnels()
-    {
-        return $this->belongsToMany(Personnel::class, 'personnel_poles', 'poles_id', 'personnel_id');
+    public function personnels() {
+        return $this->belongsToMany(Personnel::class, 'personnel_polesRecherche', 'poles_id', 'personnel_id');
     }
+    
 }

@@ -139,7 +139,6 @@ class HomeController extends Controller
                 'diplomes' => 'required|array',
                 'autreDiplomes' => 'nullable|string|max:255',
                 'poles' => 'nullable|array',
-                'poles.*.value' => 'required|string|max:255',
                 'activity' => 'required|string|max:100',
                 'domain' => 'required|string|max:100',
                 'date_inscription' => 'required|date',
@@ -197,16 +196,27 @@ class HomeController extends Controller
                 
                 // Associer les diplômes dans la table pivot `personnel_diplome`
                 if ($request->input('poles')) {
-                    $personne->polesRecherche()->sync($request->input('poles'));
+                    // Les IDs des pôles
+                    $poles = $request->input('poles');
+                    
+                    // Synchronisation sans données supplémentaires
+                    $personne->polesRecherche()->sync($poles);
                 }
-
-                // Associer les diplômes dans la table pivot `personnel_diplome`
-                if ($request->input('activity')) {
-                    $personne->activiteIndividual()->sync($request->input('activity'));
-                }
-
                 
 
+                //ajouter une domaine et sont activite
+                if ($request->input('activity')) {
+                   // Assurez-vous que `activity` est un tableau
+                    $activities = is_array($request->input('activity')) ? $request->input('activity') : [$request->input('activity')];
+                    $domain = $request->input('domain');
+                    // Synchronisation avec les activités
+                    $syncData = [];
+                    foreach ($activities as $activityId) {
+                        $syncData[$activityId] = ['domain' => $domain]; // Appliquer la même valeur de `domain`
+                    }
+                    $personne->activiteIndividual()->sync($syncData);
+
+                }
 
             });
     

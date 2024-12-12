@@ -65,15 +65,15 @@ class Personnel extends Model
         return $this->belongsToMany(Diplome::class, 'personnel_diplome');
     }
 
-
-  // Relation avec les pôles de recherche
-    public function polesRecherche()
-    {
-        return $this->belongsToMany(PoleRecherche::class, 'personnel_poles', 'personnel_id', 'poles_id');
+    public function polesRecherche() {
+        return $this->belongsToMany(PoleRecherche::class, 'personnel_polesRecherche', 'personnel_id', 'poles_id');
     }
+    
+  
     // Relation avec les activités individuelles
     public function activiteIndividual()
     {
-        return $this->belongsToMany(ActiviteIndividual::class, 'personnel_activite');
+        return $this->belongsToMany(ActiviteIndividual::class, 'personnel_activite', 'personnel_id',	'activity_id');
     }
 }
+
