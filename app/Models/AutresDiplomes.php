@@ -10,6 +10,7 @@ class AutresDiplomes extends Model
     use HasFactory;
     protected $fillable = [
         'name',
+        'personnel_id'
     ];
 
     protected $table = "autres_diplomes";

@@ -10,6 +10,7 @@ use App\Models\Personnel;
 use App\Models\Diplome;
 use App\Models\PoleRecherche;
 use App\Models\ActiviteIndividual;
+use App\Models\AutresDiplomes;
 use App\Models\Commune;
 use App\Models\District;
 use App\Models\TypeMembre;
@@ -20,7 +21,8 @@ class HomeController extends Controller
 {
     public function update(Request $request, $personId)
         {
-            \Log::info('ID reçu pour la mise à jour :', ['id' => $personId]);
+            Log::info('ID reçu pour la mise à jour :', ['id' => $personId]);
+            Log::info('Données reçues pour la mise à jour :', $request->all());
 
             // Trouver l'enregistrement personnel
             $personnel = Personnel::findOrFail($personId);
@@ -45,31 +47,75 @@ class HomeController extends Controller
                 $personnel->update($validatedPersonnelData['personnelData']);
             }
 
+            if ($request->has('autresDiplomes')) {
+                $validatedAutresDiplomes = $request->validate([
+                    'autresDiplomes' => 'sometimes|string|max:100',
+                ]);
+            
+                // Rechercher ou créer un diplôme lié
+                $autresDiplome = AutresDiplomes::firstOrNew(['personnel_id' => $personnel->id]);
+            
+                // Mettre à jour ou définir le champ `nom`
+                $autresDiplome->name = $validatedAutresDiplomes['autresDiplomes'];
+            
+                // Sauvegarder les modifications
+                $autresDiplome->save();
+            }
+            
+            
+
             // Traitement des diplômes
             if ($request->has('diplomes')) {
-                // Récupérer les diplômes depuis la requête
-                $diplomes = $request->input('diplomes');
+                // Récupérer les IDs des diplômes reçus dans la requête
+                $diplomesIds = $request->input('diplomes'); // Tableau des IDs reçus
 
-                // Valider les diplômes
-                $validatedDiplomes = $request->validate([
-                    'diplomes.*.nom' => 'required|string|max:255',
+                // Valider les IDs reçus dans la requête
+                $validatedDiplomesIds = $request->validate([
+                    'diplomes' => 'array', // On s'assure que c'est un tableau
+                    'diplomes.*' => 'exists:diplomes,id', // On vérifie que les IDs existent dans la table diplomes
                 ]);
 
-                // Insérer chaque diplôme dans la base de données et l'associer au personnel
-                foreach ($diplomes as $diplome) {
-                    // Créer un nouveau diplôme et associer à ce personnel
-                    Diplome::create([
-                        'nom' => $diplome['nom'],
-                        'personnel_id' => $personnel->id, // Associer le diplôme au personnel
-                    ]);
+                // Récupérer les IDs des diplômes existants dans la base de données
+                $existingDiplomesIds = Diplome::whereIn('id', $diplomesIds)->pluck('id')->toArray();
+
+                // Vérifier chaque ID reçu dans la requête
+                foreach ($diplomesIds as $diplomeId) {
+                    // Si le diplôme existe dans la base de données
+                    if (in_array($diplomeId, $existingDiplomesIds)) {
+                        // Vérifier si ce diplôme est déjà associé au personnel via la table pivot
+                        if (!$personnel->diplomes->contains('id', $diplomeId)) {
+                            // Ajouter la relation dans la table pivot
+                            $personnel->diplomes()->attach($diplomeId);
+                        }
+                    }
                 }
             }
+
+            // Charger le personnel avec ses relations
+            $personnelData = $personnel->load([
+                'diplomes',
+                'section',
+                'activiteIndividual',
+                'polesRecherche',
+                'typesMembres',
+                'autresDiplomes'
+            ]);            
+
 
             // Répondre avec une réponse appropriée// Retourner les données mises à jour
                 return response()->json([
                     'message' => 'Données mises à jour avec succès.',
-                    'personnel' => $personnel->fresh()->load('section', 'diplomes'), // Utilise `fresh` pour récupérer les données actualisées
+                    'user' => $personnel,
+                    'personnelData' => [
+                        'section' => $personnelData->section,
+                        'diplomes' => $personnelData->diplomes,
+                        'activity' => $personnelData->activiteIndividual,
+                        'polesSearch' => $personnelData->polesRecherche,
+                        'typesMembers' => $personnelData->typesMembres,
+                        'bodyData' => $personnelData
+                    ],
                 ]);
+                
         }
 
     public function sondage(Request $request){
@@ -137,7 +183,7 @@ class HomeController extends Controller
                 'telephone' => 'required|string|max:15',
                 'email' => 'required|email|max:255',
                 'diplomes' => 'required|array',
-                'autreDiplomes' => 'nullable|string|max:255',
+                'autresDiplomes' => 'nullable|string|max:255',
                 'poles' => 'nullable|array',
                 'activity' => 'required|string|max:100',
                 'domain' => 'required|string|max:100',
@@ -165,8 +211,11 @@ class HomeController extends Controller
                     'mail' => $request->input('email'),
                     'section_id' => $request->input('section'),
                 ]);
+
+                
+
                 // Si une photo est envoyée, on la stocke
-                if ($request->hasFile('profile_picture')) {
+                if ($request->input('profile_picture')) {
                     $path = $request->file('profile_picture')->store('public/profile_pictures');
                     $personne->profile_picture = $path;
                     $personne->save();
@@ -174,6 +223,21 @@ class HomeController extends Controller
                 
 
                 $personnelId = $personne->id;
+
+                // Si une photo est envoyée, on la stocke
+                // Si un autre diplôme est envoyé, on le stocke
+                if ($request->has('autresDiplomes')) {
+                    Log::info('Autres Diplomes : ', ['autresDiplomes' => $request->input('autresDiplomes')]);
+                    
+                    AutresDiplomes::create([
+                        'name' => $request->input('autresDiplomes'),
+                        'personnel_id' => $personne->id
+                    ]);
+                } else {
+                    Log::warning('Autres Diplomes non trouvés dans la requête');
+                }
+                
+
     
                 // Étape 2 : Déterminer les types de membres à associer
                 $typeIds = [];

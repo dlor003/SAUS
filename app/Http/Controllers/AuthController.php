@@ -22,14 +22,22 @@ class AuthController extends Controller
         if (!Auth::attempt($credentials)) {
             return response()->json(['message' => 'Invalid credentials'], 401);
         }
-    
+
         $user = Auth::user();
         $token = $user->createToken('authToken')->plainTextToken;
-    
-         // Récupère les données de la personne associée via la relation
-         $personnalData = $user->personnel;
-        // Si la personne associée n'est pas trouvée (au cas où cela peut arriver)
-        if (!$personnalData) {
+
+        // Charger le personnel avec ses relations
+        $personnelData = $user->personnel()->with([
+            'diplomes',
+            'section',
+            'activiteIndividual',
+            'polesRecherche',
+            'typesMembres',
+            'autresDiplomes'
+        ])->first();
+
+        // Vérifiez si le personnel est trouvé
+        if (!$personnelData) {
             return response()->json([
                 'message' => 'No personnel data found for this user.',
                 'user' => $user,
@@ -37,24 +45,21 @@ class AuthController extends Controller
             ], 404);
         }
 
-         $diplomes = $personnalData->Diplomes;
-         $Activity = $personnalData->activiteIndividual;
-         $polesSearch = $personnalData->polesRecherche;
-         $section = $personnalData->section;
-         // Récupère les types de membres via la relation belongsToMany
-         $typesMembres = $personnalData->typesMembres;
-
-        // Renvoie une réponse JSON avec les données utilisateur, token et personnel
+        // Structurer la réponse JSON
         return response()->json([
             'user' => $user,
             'token' => $token,
-            'diplomes' => $diplomes,
-            'section' => $section,
-            'activity' => $Activity,
-            'polesSearch' => $polesSearch,
-            'typesMembers' => $typesMembres
+            'personnelData' => [
+                'section' => $personnelData->section,
+                'diplomes' => $personnelData->diplomes,
+                'activity' => $personnelData->activiteIndividual,
+                'polesSearch' => $personnelData->polesRecherche,
+                'typesMembers' => $personnelData->typesMembres,
+                'bodyData' => $personnelData
+            ],
         ]);
     }
+
 
     // Logout function
     public function logout(Request $request, $tokenId)
