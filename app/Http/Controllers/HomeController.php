@@ -61,10 +61,43 @@ class HomeController extends Controller
                 // Sauvegarder les modifications
                 $autresDiplome->save();
             }
-            
-            
 
-            // Traitement des diplômes
+            if ($request->has('sectionsData')) {
+                $validatedData = $request->validate([
+                    'sectionsData.id' => 'required|exists:sections,id',
+                ]);
+                
+                $sectionId = $validatedData['sectionsData']['id'];
+                $section = Section::find($sectionId);
+
+                if ($section) {
+                    // Associer la section au personnel
+                    $personnel->section()->associate($section); // Utilise 'section_id' comme clé étrangère
+                    $personnel->save();
+                }
+            }
+
+            if ($request->has('ActivityData')) {
+                $validatedData = $request->validate([
+                    'ActivityData' => 'required|array',
+                    'ActivityData.*.id' => 'required|exists:activite_individuals,id',
+                    'ActivityData.*.domain' => 'required|string|min:6|max:100',
+                ]);
+            
+                // Récupérer le premier élément de "ActivityData"
+                $activityData = $validatedData['ActivityData'][0];
+                $activityId = $activityData['id'];
+                $domain = $activityData['domain'];
+            
+                // Mettre à jour ou insérer la relation dans la table pivot
+                $personnel->activiteIndividual()->sync([
+                    $activityId => ['domain' => $domain]
+                ]);
+            }
+            
+                             
+            
+            // 'Traitement' des diplômes
             if ($request->has('diplomes')) {
                 // Récupérer les IDs des diplômes reçus dans la requête
                 $diplomesIds = $request->input('diplomes'); // Tableau des IDs reçus

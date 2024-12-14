@@ -14,6 +14,10 @@ class ActiviteIndividual extends Model
     // Relation avec le personnel
     public function personnels()
     {
-        return $this->belongsToMany(Personnel::class, 'personnel_activite', 'personnel_id',	'activity_id');
+        return $this->belongsToMany(Personnel::class, 
+        'personnel_activite', 
+        'personnel_id',	
+        'activity_id')
+        ->withPivot('domain'); // Inclure la colonne "domain"
     }
 }

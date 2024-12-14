@@ -56,7 +56,7 @@ class Personnel extends Model
     // Relation avec la section
     public function section()
     {
-        return $this->belongsTo(Section::class);
+        return $this->belongsTo(Section::class, 'section_id');
     }
 
     // Relation avec les diplômes
@@ -72,8 +72,12 @@ class Personnel extends Model
   
     // Relation avec les activités individuelles
     public function activiteIndividual()
-    {
-        return $this->belongsToMany(ActiviteIndividual::class, 'personnel_activite', 'personnel_id',	'activity_id');
-    }
+        {
+            return $this->belongsToMany(ActiviteIndividual::class, 'personnel_activite', 
+            'personnel_id', 
+            'activity_id')
+                            ->withPivot('domain'); // Inclure le champ `domain`
+        }
+
 }
 
