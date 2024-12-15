@@ -11,6 +11,7 @@ use App\Models\Diplome;
 use App\Models\PoleRecherche;
 use App\Models\ActiviteIndividual;
 use App\Models\AutresDiplomes;
+use App\Models\BasicData;
 use App\Models\Commune;
 use App\Models\District;
 use App\Models\TypeMembre;
@@ -46,6 +47,21 @@ class HomeController extends Controller
                 // Mettre à jour l'enregistrement personnel
                 $personnel->update($validatedPersonnelData['personnelData']);
             }
+
+
+            if ($request->has('BasicData')) {
+                $validatedBasicData = $request->validate([
+                    'BasicData.nom' => 'sometimes|string|max:255',
+                    'BasicData.prenom' => 'sometimes|string|max:255',
+                    'BasicData.email' => 'sometimes|email|max:255',
+                    'BasicData.id' => 'required|exists:basic_data,id',
+                ]);
+            
+                // Récupérer l'enregistrement BasicData
+                $BasicData = BasicData::findOrFail($validatedBasicData['BasicData']['id']);
+                $BasicData->update($validatedBasicData['BasicData']);
+            }
+            
 
             if ($request->has('autresDiplomes')) {
                 $validatedAutresDiplomes = $request->validate([
@@ -149,7 +165,8 @@ class HomeController extends Controller
                 'activiteIndividual',
                 'polesRecherche',
                 'typesMembres',
-                'autresDiplomes'
+                'autresDiplomes',
+                'basicData'
             ]);            
 
 
@@ -163,7 +180,8 @@ class HomeController extends Controller
                         'activity' => $personnelData->activiteIndividual,
                         'polesSearch' => $personnelData->polesRecherche,
                         'typesMembers' => $personnelData->typesMembres,
-                        'bodyData' => $personnelData
+                        'bodyData' => $personnelData,
+                        'basicData' => $personnelData->basicData
                     ],
                 ]);
                 
@@ -224,15 +242,13 @@ class HomeController extends Controller
         try {
             // Validation des données
             $request->validate([
+                'basic_data_id' => 'required|exists:basic_data,id',
                 'appelation' => 'required|string|max:255',
-                'Nom' => 'required|string|max:255',
-                'Prenom' => 'required|string|max:255',
                 'date_naissance' => 'required|date',
                 'genre' => 'required|string|max:50',
                 'adress' => 'required|string|max:255',
                 'nationalite' => 'required|string|max:100',
                 'telephone' => 'required|string|max:15',
-                'email' => 'required|email|max:255',
                 'diplomes' => 'required|array',
                 'autresDiplomes' => 'nullable|string|max:255',
                 'poles' => 'nullable|array',
@@ -250,16 +266,14 @@ class HomeController extends Controller
             DB::transaction(function () use ($request, &$personnelId) {
                 // Étape 1 : Enregistrer la personne dans la table `personnels`
                 $personne = Personnel::create([
+                    'basic_data_id' => $request->input('basic_data_id'),
                     'appelation' => $request->input('appelation'),
-                    'nom' => $request->input('Nom'),
-                    'prenom' => $request->input('Prenom'),
                     'date_naissance' => $request->input('date_naissance'),
                     'genre' => $request->input('genre'),
                     'adresse' => $request->input('adress'),
                     'nationalite' => $request->input('nationalite'),
                     'date_inscription' => $request->input('date_inscription'),
                     'phone' => $request->input('telephone'),
-                    'mail' => $request->input('email'),
                     'section_id' => $request->input('section'),
                 ]);
 

@@ -17,6 +17,7 @@ class BasicData extends Model
         'fokontany_attempts',
         'is_blocked'
     ];
+    protected $table = "basic_data";
 
      // Relation : BasicData a un seul personnel
      public function personnel()

@@ -56,7 +56,8 @@ class AuthController extends Controller
                 'activity' => $personnelData->activiteIndividual,
                 'polesSearch' => $personnelData->polesRecherche,
                 'typesMembers' => $personnelData->typesMembres,
-                'bodyData' => $personnelData
+                'bodyData' => $personnelData,
+                'basicData' => $personnelData->basicData
             ],
         ]);
     }
