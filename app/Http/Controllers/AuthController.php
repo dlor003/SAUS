@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\BasicData;
 use App\Models\Diplome;
 use App\Models\Personnel;
 use Illuminate\Http\Request;
@@ -58,6 +59,27 @@ class AuthController extends Controller
                 'bodyData' => $personnelData
             ],
         ]);
+    }
+
+    public function registerBasicData (Request $request)
+    {
+    
+        // Validation des données envoyées par React
+        $request->validate([
+            'nom' => 'required|string',
+            'prenom' => 'required|string',
+            'email' => 'required|email|unique:basic_data,email',
+        ]);
+
+        // Enregistrement des données dans la table 'basic_data'
+        $basicData = BasicData::create([
+            'nom' => $request->nom,
+            'prenom' => $request->prenom,
+            'email' => $request->email,
+        ]);
+
+        // Réponse de succès
+        return response()->json(['message' => 'Inscription réussie', 'data' => $basicData], 201);
     }
 
 

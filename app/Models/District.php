@@ -10,7 +10,8 @@ class District extends Model
     use HasFactory;
     protected $fillable = [
         'name',
-        'district_id'
+        'district_id', 
+        'code'
     ];
 
     // Relation avec les communes

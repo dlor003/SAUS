@@ -10,6 +10,8 @@ class Commune extends Model
     use HasFactory;
     protected $fillable = [
         'name',
+        'code',
+        'district_id'
     ];
 
     // Relation avec le district

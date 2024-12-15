@@ -10,7 +10,8 @@ class Fokontany extends Model
     use HasFactory;
     protected $fillable = [
         'name',
-        'commune_id'
+        'commune_id', 
+        'code'
     ];
 
 

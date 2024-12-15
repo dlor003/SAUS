@@ -94,6 +94,24 @@ class HomeController extends Controller
                     $activityId => ['domain' => $domain]
                 ]);
             }
+
+            if ($request->has('PolesSearch')) {
+                $validatedData = $request->validate([
+                    'PolesSearch' => 'required|array',
+                    'PolesSearch.*.id' => 'required|exists:poles_recherches,id',
+                ]);
+            
+                $polesIds = []; // Tableau pour stocker les IDs des poles
+                foreach ($validatedData['PolesSearch'] as $poleData) {
+                    // Pas besoin de mettre à jour ou créer PoleRecherche, juste collecter les IDs
+                    $polesIds[] = $poleData['id']; // Récupérer directement les IDs validés
+                }
+            
+                // Synchroniser les relations dans la table pivot
+                $personnel->polesRecherche()->sync($polesIds); // Remplace les relations existantes
+                // Utilisez attach() si vous souhaitez ajouter sans écraser les existantes :
+                // $personnel->polesRecherche()->attach($polesIds);
+            }            
             
                              
             

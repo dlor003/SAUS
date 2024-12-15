@@ -35,22 +35,49 @@ class VerificationController extends Controller
         return response()->json(['exists' => $exists]);
     }
 
-    public function verifyFokontany(Request $request)
-    {
-        $request->validate([
-            'fokontany' => 'required|string',
-            'commune' => 'required|string'
-        ]);
+        public function dataToVerified() {
+            $district = District::all();
+            $commune = Commune::all();
+            $fokontany = Fokontany::all();
 
-        $commune = Commune::where('name', $request->commune)->first();
-        if (!$commune) {
-            return response()->json(['exists' => false], 404);
+            return  [
+                'districts' => $district,
+                'communes' => $commune,
+                'fokontanys' => $fokontany
+            ];
         }
 
-        $exists = Fokontany::where('name', $request->fokontany)
-                           ->where('commune_id', $commune->id)
-                           ->exists();
+        public function verifyFokontany(Request $request)
+        {
+            // Validation des entrées
+            $request->validate([
+                'fokontany' => 'required|string',
+                'commune' => 'required|string',
+                'fokontany_commune_id' => 'required|integer', // Validation de l'ID de la commune
+            ]);
 
-        return response()->json(['exists' => $exists]);
-    }
+            // Recherche de la commune par le nom
+            $commune = Commune::where('name', $request->commune)->first();
+
+            // Vérification si la commune envoyée existe dans la base de données
+            if ($commune) {
+                // Si l'ID de la commune envoyée correspond à l'ID du fokontany_commune_id
+                if ($commune->id == $request->fokontany_commune_id) {
+                   // Si l'ID correspond, le fokontany existe dans cette commune, on retourne true directement
+                    return response()->json(['exists' => true]);
+                }else{
+                    // Vérification si le fokontany existe dans la commune "ANTSOHIHY"
+                    $commune = Fokontany::where('name', $request->fokontany)
+                                                ->where('commune_id', $commune->id)
+                                                ->exists();
+                    // Si aucune des deux communes n'est trouvée, on renvoie false
+                    return response()->json(['exists' => false]);
+                }
+            }
+
+        }
+
 }
+
+
+

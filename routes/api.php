@@ -33,6 +33,7 @@ Route::post('/check-email', function (Request $request) {
 
 
 Route::post('/register', [AuthController::class, 'register']);
+Route::post('/registerBasicData', [AuthController::class, 'registerBasicData']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/logout', [AuthController::class, 'logout']);
 Route::get('/user', [AuthController::class, 'user']);
@@ -40,6 +41,7 @@ Route::get('/user', [AuthController::class, 'user']);
 Route::post('/verify-district', [VerificationController::class, 'verifyDistrict']);
 Route::post('/verify-commune', [VerificationController::class, 'verifyCommune']);
 Route::post('/verify-fokontany', [VerificationController::class, 'verifyFokontany']);
+Route::get('/dataToVerified', [VerificationController::class, 'dataToVerified']);
 
 Route::post('/INSCRIPTION-SAUS', [HomeController::class, 'store']);
 Route::get('/allData', [HomeController::class, 'allData']);

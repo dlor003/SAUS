@@ -13,6 +13,12 @@ class Personnel extends Model
         'adresse', 'nationalite', 'phone', 'mail', 'section_id', 'date_inscription', 'profile_picture'
     ];
 
+    // Relation : Un personnel a un basicData
+    public function basicData()
+    {
+        return $this->belongsTo(BasicData::class);
+    }
+
     public function getProfilePictureUrlAttribute()
     {
         return $this->profile_picture 
