@@ -13,6 +13,12 @@ class Personnel extends Model
         'adresse', 'nationalite', 'phone', 'section_id', 'date_inscription', 'profile_picture', 'basic_data_id'
     ];
 
+    // Relation avec les demandes
+    public function demandes()
+    {
+        return $this->hasMany(Demandes::class, 'personnel_id');
+    }
+
     // Relation : Un personnel a un basicData
     public function basicData()
     {

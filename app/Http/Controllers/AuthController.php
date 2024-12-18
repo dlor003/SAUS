@@ -46,6 +46,11 @@ class AuthController extends Controller
             ], 404);
         }
 
+        // Inclure l'URL complète de l'image de profil
+        $profilePictureUrl = $personnelData->profile_picture 
+        ? asset('storage/' . $personnelData->profile_picture) 
+        : null;
+
         // Structurer la réponse JSON
         return response()->json([
             'user' => $user,
@@ -57,10 +62,66 @@ class AuthController extends Controller
                 'polesSearch' => $personnelData->polesRecherche,
                 'typesMembers' => $personnelData->typesMembres,
                 'bodyData' => $personnelData,
-                'basicData' => $personnelData->basicData
+                'basicData' => $personnelData->basicData,
+                'profile_picture' => $profilePictureUrl // Inclure ici
+            ],
+        ]);
+ 
+    }
+    
+    public function getUserProfile($id)
+    {
+        // Récupère un seul enregistrement correspondant à l'ID
+        $personnelData = Personnel::where('id', $id)->first();
+    
+        if (!$personnelData) {
+            // Gérer le cas où aucun enregistrement n'est trouvé
+            return response()->json([
+                'error' => 'Utilisateur non trouvé',
+            ], 404);
+        }
+    
+        // Génère l'URL de l'image de profil
+        $profilePictureUrl = $personnelData->profile_picture 
+            ? asset('storage/' . $personnelData->profile_picture) 
+            : null;
+    
+        return response()->json([
+            'personnelData' => [
+                'section' => $personnelData->section,
+                'diplomes' => $personnelData->diplomes,
+                'activity' => $personnelData->activiteIndividual,
+                'polesSearch' => $personnelData->polesRecherche,
+                'typesMembers' => $personnelData->typesMembres,
+                'bodyData' => $personnelData,
+                'basicData' => $personnelData->basicData,
+                'autrsDiplomes' => $personnelData->autresDiplomes,
+                'profile_picture' => $profilePictureUrl,
             ],
         ]);
     }
+
+     // Méthode pour débloquer un utilisateur
+     public function unblockUser($userId)
+     {
+         // Vérifier si l'utilisateur existe dans la table basic_data
+         $user = BasicData::where('id', $userId)->first();
+ 
+         // Si l'utilisateur existe, mettre à jour le champ is_blocked à false
+         if ($user) {
+                $user->is_blocked = false;
+                $user->district_attempts  = 0;
+                $user->commune_attempts = 0;
+                $user->fokontany_attempts = 0;
+                $user->save();
+                return response()->json(['message' => 'Utilisateur débloqué avec succès.'], 200);
+         }
+ 
+         // Si l'utilisateur n'existe pas, retourner un message d'erreur
+         return response()->json(['message' => 'Utilisateur non trouvé.'], 404);
+     }
+    
+
 
     public function registerBasicData (Request $request)
     {
@@ -98,6 +159,30 @@ class AuthController extends Controller
     {
         return response()->json($request->user());
     }
+
+    public function AllUser()
+    {
+        $AllUser = BasicData::with('personnel')->get();
+
+        return response()->json([
+            'AllUsers' => $AllUser,
+        ]);
+    }
+
+    public function AllAdmin()
+    {
+        $AllAdmin = User::with([
+            'personnel:id,appelation', // Charger les colonnes nécessaires de Personnel
+            'personnel.basicData'      // Charger les relations imbriquées de BasicData
+        ])->where('roles', 'admin')->get();
+    
+        return response()->json([
+            'AllAdmin' => $AllAdmin,
+        ]);
+    }
+    
+
+
 
     // Registration function
     public function register(Request $request)

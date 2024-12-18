@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\DemandeController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\VerificationController;
 use App\Models\User;
@@ -24,7 +25,24 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::put('/personnel/{personId}', [HomeController::class, 'update']);
+    Route::get('/demandes/{userId}', [DemandeController::class, 'getDemandesByUser']);
+    Route::post('/profile-picture', [HomeController::class, 'updateProfilePicture']);
+
+    // Routes pour le personnel
+    Route::post('/demandes', [DemandeController::class, 'soumettreDemande']); // Soumettre une demande
+    Route::put('/demandes/{id}/reponse', [DemandeController::class, 'repondreDemande']); // Répondre à une demande
+    Route::get('/getAllDemandes', [DemandeController::class, 'getAllDemandes']);
+    Route::put('/demandes/{id}/traitee', [DemandeController::class, 'traiter']);
+    Route::put('/demandes/{id}/rejete', [DemandeController::class, 'rejeter']);
+
+    // route concernat les utilisateurs 
+    Route::get('/AllUser', [AuthController::class, 'AllUser']);
+    Route::get('/user/{id}/profile', [AuthController::class, 'getUserProfile']);
+    Route::post('/user/{id}/unblock', [AuthController::class, 'unblockUser']); 
+    Route::get( '/AllAdmin', [AuthController::class, 'AllAdmin']);
+
 });
+
 
 Route::post('/check-email', function (Request $request) {
     $emailExists = User::where('email', $request->email)->exists();

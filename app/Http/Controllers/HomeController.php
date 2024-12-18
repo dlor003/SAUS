@@ -371,4 +371,30 @@ class HomeController extends Controller
             ], 500);
         }
     }
+
+    public function updateProfilePicture(Request $request)
+    {
+        // Validation des données entrantes
+        $request->validate([
+            'profile_picture' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048', // Valide une image
+            'id' => 'required|exists:personnels,id', // Vérifie que l'ID existe dans la table personnels
+        ]);
+    
+        // Récupérer l'utilisateur par son ID
+        $personnel = Personnel::findOrFail($request->id);
+    
+        // Stocker l'image dans le dossier 'public/profile_pictures'
+        $path = $request->file('profile_picture')->store('profile_pictures', 'public');
+    
+        // Mettre à jour la colonne 'profile_picture' avec le chemin du fichier
+        $personnel->profile_picture = $path;
+        $personnel->save();
+    
+        // Retourner une réponse avec l'URL publique de l'image
+        return response()->json([
+            'message' => 'Profile picture updated successfully.',
+            'image_url' => asset('storage/' . $path), // Générer une URL publique
+        ]);
+    }
+    
 }
