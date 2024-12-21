@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\BasicData;
+use App\Models\Cotisation;
 use App\Models\Diplome;
 use App\Models\Personnel;
 use Illuminate\Http\Request;
@@ -61,6 +62,7 @@ class AuthController extends Controller
                 'activity' => $personnelData->activiteIndividual,
                 'polesSearch' => $personnelData->polesRecherche,
                 'typesMembers' => $personnelData->typesMembres,
+                'cotisations' => $personnelData->cotisations,
                 'bodyData' => $personnelData,
                 'basicData' => $personnelData->basicData,
                 'profile_picture' => $profilePictureUrl // Inclure ici
@@ -94,6 +96,7 @@ class AuthController extends Controller
                 'polesSearch' => $personnelData->polesRecherche,
                 'typesMembers' => $personnelData->typesMembres,
                 'bodyData' => $personnelData,
+                'cotisations' => $personnelData->cotisations,
                 'basicData' => $personnelData->basicData,
                 'autrsDiplomes' => $personnelData->autresDiplomes,
                 'profile_picture' => $profilePictureUrl,
@@ -120,6 +123,42 @@ class AuthController extends Controller
          // Si l'utilisateur n'existe pas, retourner un message d'erreur
          return response()->json(['message' => 'Utilisateur non trouvé.'], 404);
      }
+
+    
+     public function storeCotisation(Request $request)
+    {
+        // Validation des données
+        $request->validate([
+            'type_paiement' => 'required|string',
+            'date_paiement' => 'required|date',
+            'file' => 'required|image|mimes:jpeg,png,jpg|max:2048', // Validation du fichier
+            'id' => 'required|exists:personnels,id',
+        ]);
+
+        // Traitement de l'image (enregistrement de l'image dans le dossier 'public/preuve_paiement')
+        $filePath = null;
+        if ($request->hasFile('file')) {
+            $filePath = $request->file('file')->store('preuve_paiement', 'public'); // Stockage de l'image
+        }
+
+        // Génération de l'URL de l'image (même logique que pour le profil)
+        $profilePictureUrl = $filePath ? asset('storage/' . $filePath) : null;
+
+        // Création de la cotisation dans la base de données
+        $cotisation = new Cotisation();
+        $cotisation->name = $request->input('type_paiement');
+        $cotisation->date_payment = $request->input('date_paiement');
+        $cotisation->personnel_id = $request->input('id'); // ID de l'utilisateur (personnel)
+        $cotisation->preuve_picture = $profilePictureUrl; // Le chemin de l'image accessible publiquement
+
+        // Sauvegarde de la cotisation
+        $cotisation->save();
+
+        return response()->json([
+            'message' => 'Cotisation ajoutée avec succès',
+            'data' => $cotisation
+        ], 201);
+    }
     
 
 
@@ -143,6 +182,45 @@ class AuthController extends Controller
         // Réponse de succès
         return response()->json(['message' => 'Inscription réussie', 'data' => $basicData], 201);
     }
+
+    public function getRegisteredBasicData(Request $request)
+    {
+        // Validation des données envoyées par React
+        $request->validate([
+            'email' => 'required|email|exists:basic_data,email',  // Changer 'unique' en 'exists' pour vérifier si l'email existe déjà
+        ]);
+    
+        // Récupérer les données associées à l'email
+        $basicData = BasicData::where('email', $request->email)->first(); // Utiliser 'first' pour récupérer la première correspondance
+    
+        if ($basicData) {
+            // Réponse de succès avec les données récupérées
+            return response()->json([
+                'message' => 'Données récupérées avec succès',
+                'data' => $basicData,
+                'exists' => true,
+                ], 200);
+        } else {
+            // Si l'email n'est pas trouvé, retournez un message d'erreur
+            return response()->json([
+                'message' => 'Email non trouvé',
+                'exists' => false
+            ], 404);
+        }
+    }
+
+    public function verifyExistsEmail(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email',
+        ]);
+
+        $email = $request->input('email');
+        $exists = BasicData::where('email', $email)->exists();
+
+        return response()->json(['exists' => $exists]);
+    }
+    
 
 
     // Logout function
@@ -217,4 +295,43 @@ class AuthController extends Controller
             ], 500);
         }
     }
+
+    public function searchUser(Request $request)
+    {
+        $query = $request->query('query');
+        $users = BasicData::where('nom', 'like', "%$query%")->get(); // Retourne plusieurs résultats
+        return response()->json($users);
+    }
+
+
+    public function promoteUser(Request $request)
+    {
+        // Étape 1 : Trouver l'enregistrement dans BasicData avec sa relation
+        $basicData = BasicData::with('personnel')->find($request->id);
+    
+        if ($basicData) {
+            // Étape 2 : Vérifier si un personnel est associé
+            if ($basicData->personnel) {
+                $personnelId = $basicData->personnel->id;
+    
+                // Étape 3 : Trouver l'utilisateur correspondant dans la table `users`
+                $user = User::where('personnel_id', $personnelId)->first();
+    
+                if ($user) {
+                    // Étape 4 : Mettre à jour le rôle de l'utilisateur
+                    $user->roles = 'admin';
+                    $user->save();
+    
+                    return response()->json(['message' => 'User promoted successfully']);
+                }
+    
+                return response()->json(['message' => 'No user found for this personnel_id'], 404);
+            }
+    
+            return response()->json(['message' => 'Personnel not found for this BasicData'], 404);
+        }
+    
+        return response()->json(['message' => 'BasicData not found'], 404);
+    }
+    
 }

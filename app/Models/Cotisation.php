@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class Cotisation extends Model
 {
     use HasFactory;
-    protected $fillable = ['personne_id', 'name', 'date_paiement'];
+    protected $fillable = ['personnel_id', 'name', 'date_payment', 'preuve_picture'];
 
     public function personne()
     {

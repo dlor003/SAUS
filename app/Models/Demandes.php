@@ -10,7 +10,7 @@ class Demandes extends Model
     use HasFactory;
 
     protected $fillable = [
-        'personnel_id', 'type_demande', 'message', 'status', 'admin_message'
+        'personnel_id', 'type_demande', 'message', 'status', 'admin_message', 'preuve_picture_demandes', 'date'
     ];
 
     // Relation avec le modèle Personnel (ou Utilisateur)

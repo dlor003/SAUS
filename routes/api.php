@@ -41,6 +41,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/user/{id}/unblock', [AuthController::class, 'unblockUser']); 
     Route::get( '/AllAdmin', [AuthController::class, 'AllAdmin']);
 
+    Route::get('/users/search', [AuthController::class, 'searchUser']);
+    Route::post('/users/promote', [AuthController::class, 'promoteUser']);
+    Route::post('/cotisation', [AuthController::class, 'storeCotisation']);
+
+
 });
 
 
@@ -55,6 +60,8 @@ Route::post('/registerBasicData', [AuthController::class, 'registerBasicData']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/logout', [AuthController::class, 'logout']);
 Route::get('/user', [AuthController::class, 'user']);
+Route::post('/verify-email', [AuthController::class, 'getRegisteredBasicData']);
+Route::post('/verify-exists-email', [AuthController::class, 'verifyExistsEmail']);
 
 Route::post('/verify-district', [VerificationController::class, 'verifyDistrict']);
 Route::post('/verify-commune', [VerificationController::class, 'verifyCommune']);
